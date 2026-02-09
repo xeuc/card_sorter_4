@@ -35,8 +35,6 @@ fn setup(mut commands: Commands) {
             height: Val::Percent(100.0),
             ..default()
         },
-                Pickable { should_block_lower: true, ..Default::default() },
-        GlobalZIndex(0),
         children![
             spawn_tier_list(),
             spawn_big_card_preview(),
@@ -56,8 +54,6 @@ fn spawn_tier_list() -> impl Bundle {
             flex_direction: FlexDirection::Column,
             ..default()
         },
-                Pickable { should_block_lower: true, ..Default::default() },
-        GlobalZIndex(1),
         children![
             spawn_ranked_tier_list_table(),
             spawn_unranked_container(),
@@ -76,8 +72,6 @@ fn spawn_ranked_tier_list_table() -> impl Bundle {
             overflow: Overflow::scroll_y(),
             ..default()
         },
-                Pickable { should_block_lower: true, ..Default::default() },
-        GlobalZIndex(2),
         Children::spawn(SpawnIter(
             Tier::ALL.iter().map(|tier| spawn_tier_list_line(*tier))
         )),
@@ -97,8 +91,6 @@ fn spawn_tier_list_line(tier: Tier) -> impl Bundle {
             max_height: Val::Percent(1.0/Tier::ALL.len() as f32 * 100.0),
             ..default()
         },
-                Pickable { should_block_lower: true, ..Default::default() },
-        GlobalZIndex(3),
         // observe(| _: On<Pointer<Click>>| {
         //     info!("Clicked on tier");
         // }),
@@ -122,8 +114,6 @@ fn spawn_label_container(tier: Tier) -> impl Bundle {
         },
         BackgroundColor(tier.color()),
         Text::new(tier.label()),
-        Pickable { should_block_lower: true, ..Default::default() },
-        GlobalZIndex(4),
         // No Children, just the label
     )
 }
@@ -145,8 +135,6 @@ fn spawn_ranked_container(tier: Tier) -> impl Bundle {
             ..default()
         },
         BackgroundColor(Color::linear_rgb(0.1, 0.1, 0.1)),
-                Pickable { should_block_lower: true, ..Default::default() },
-        GlobalZIndex(4),
         // Children (cards) will be set at runtime (when loading them from json for example)
     )
 }
@@ -168,8 +156,6 @@ fn spawn_unranked_container() -> impl Bundle {
             ..default()
         },
         BackgroundColor(Color::linear_rgb(0.05, 0.05, 0.05)),
-        Pickable { should_block_lower: true, ..Default::default() },
-        GlobalZIndex(2),
         // Children (cards) will be set at runtime (when loading them from json for example)
     )
 }
@@ -188,9 +174,7 @@ fn spawn_big_card_preview() -> impl Bundle {
             justify_content: JustifyContent::Center,
             ..default()
         },
-                Pickable { should_block_lower: true, ..Default::default() },
         BackgroundColor(Color::linear_rgb(0.15, 0.15, 1.0)),
-        GlobalZIndex(1),
     )
 }
 
@@ -223,24 +207,9 @@ fn add_card(
                     color: Color::BLACK.into(),
                     ..default()
                 },
-                Pickable { should_block_lower: true, ..Default::default() },
-                GlobalZIndex(999),
             ))
-            // .observe(update_tint_color_on::<Pointer<Over>>(Color::WHITE.into()))
-            // .observe(update_tint_color_on::<Pointer<Out>>(Color::BLACK.into()))
-            // .observe(update_tint_color_on::<Pointer<Press>>(Color::BLACK.into()))
-            // .observe(update_tint_color_on::<Pointer<Release>>(Color::WHITE.into()))
-            // .observe(
-            //     |mut event: On<Pointer<Over>>,
-            //         mut button_color: Single<&mut BackgroundColor>| {
-            //         button_color.0 = Color::srgb(1.0, 0.5, 0.0);
-            //         event.propagate(false);
-            //     },
-            // )
-            .observe(|mut event: On<Pointer<Press>>, mut button_color: Query<&mut BackgroundColor>| {
-                info!("!!!! IMAGE PRESSED");
-                // button_color.0 = Color::srgb(1.0, 0.0, 0.0);
-                // event.propagate(false);
+            .observe(|mut event: On<Pointer<Click>>, mut button_color: Query<&mut BackgroundColor>| {
+                info!("Image Clicked");
                 if let Ok(mut background_color) = button_color.get_mut(event.event_target()) {
                     *background_color = bevy::prelude::BackgroundColor(Color::srgb(1.0, 0.0, 0.0));
                     event.propagate(false);
@@ -249,14 +218,24 @@ fn add_card(
             ;
         }
     })
-    // .observe(update_background_color_on::<Pointer<Over>>(Color::WHITE.into()))
-    // .observe(update_background_color_on::<Pointer<Out>>(Color::BLACK.into()))
-    // .observe(update_background_color_on::<Pointer<Press>>(Color::BLACK.into()))
-    // .observe(update_background_color_on::<Pointer<Release>>(Color::WHITE.into()))
-    .observe(|mut event: On<Pointer<Press>>, mut button_color: Query<&mut BackgroundColor>| {
-        info!("hovered!!!!");
-        // button_color.0 = Color::srgb(1.0, 0.0, 0.0);
-        // event.propagate(false);
+    .observe(|mut event: On<Pointer<Click>>, mut button_color: Query<&mut BackgroundColor>| { // add selectedCard + replace Query by Single
+        // selectedCard = None => Event click should NOT propagate to container ❌
+        // From card spawn: propagate: false ❌
+        // Because user would like to reach out a card, note a container,
+        // There is no purpose to click a container without having a cart selected
+        // Worst: It will triger the card + the container, so put the card in the
+        // container it is in, then deselect the card... Basically doing nothing
+        
+        // selectedCard = Some => Event click should propagate to container ✅
+        // From card spawn: propagate: true ✅
+        // Because user would like to reach out a container, he already selected a card
+        // If container full of cards, I want the user to easily reach the container anyway
+        // meaning: by clicking on a card
+        // BUT DO NOT RESELECT THE CARD THEN!
+        // Skip the assign card to selectedCard if you click on card while already
+        // having a card selected
+
+        info!("Container Clicked");
         if let Ok(mut background_color) = button_color.get_mut(event.event_target()) {
             *background_color = bevy::prelude::BackgroundColor(Color::srgb(1.0, 0.0, 0.0));
             event.propagate(false);
@@ -264,44 +243,6 @@ fn add_card(
     },)
     ;
 }
-/// An observer to rotate an entity when it is dragged
-fn rotate_on_drag(mut event: On<Pointer<Click>>,) {
-    event.propagate(false);
-}
-
-/// Returns an observer that updates the entity's color to the one specified.
-fn update_background_color_on<E: EntityEvent>(
-    new_color: BackgroundColor,
-) -> impl Fn(On<E>, Query<&mut BackgroundColor>) {
-    // An observer closure that captures `new_color`. We do this to avoid needing to write four
-    // versions of this observer, each triggered by a different event and with a different hardcoded
-    // background_color. Instead, the event type is a generic, and the background_color is passed in.
-    move |event, mut query| {
-        if let Ok(mut background_color) = query.get_mut(event.event_target()) {
-            *background_color = new_color;
-            // event.event_target().propagate(false);
-            // event.trigger().propagate(false);
-            // event.entity.propagate(false);
-            // event.propagate(false);
-        }
-    }
-}
-
-/// Returns an observer that updates the entity's color to the one specified.
-fn update_tint_color_on<E: EntityEvent>(
-    new_color: Color,
-) -> impl Fn(On<E>, Query<&mut ImageNode>) {
-    // An observer closure that captures `new_color`. We do this to avoid needing to write four
-    // versions of this observer, each triggered by a different event and with a different hardcoded
-    // tint_color. Instead, the event type is a generic, and the tint_color is passed in.
-    move |event, mut query| {
-        if let Ok(mut tint_color) = query.get_mut(event.event_target()) {
-            tint_color.color = new_color;
-            // event.propagate(false);
-        }
-    }
-}
-
 
 fn add_card2(
     mut commands: Commands,
