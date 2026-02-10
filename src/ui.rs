@@ -9,9 +9,9 @@ pub struct UiPlugin;
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_systems(Startup, setup)
-            .add_systems(Startup, add_card.after(setup))
-            .add_systems(Startup, add_card2.after(setup))
+            .add_systems(Startup, setup.in_set(UILoadingEnded))
+            // .add_systems(Startup, add_card.after(setup))
+            // .add_systems(Startup, add_card2.after(setup))
             ;
     }
 }
@@ -180,7 +180,7 @@ fn spawn_big_card_preview() -> impl Bundle {
 
 // UnrankedContainer is a marker component to easily query the unranked container and add cards to it when loading them from json for example
 #[derive(Component)]
-struct UnrankedContainer;
+pub struct UnrankedContainer;
 
 
 fn add_card(
@@ -275,3 +275,8 @@ fn add_card2(
         }
     });
 }
+
+
+
+#[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
+pub struct UILoadingEnded;

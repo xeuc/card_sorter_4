@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-// use crate::card::CardPlugin;
+use crate::card::CardPlugin;
 use crate::ui::UiPlugin;
 use crate::scroll::ScrollPlugin;
 // use crate::ui::card_view::CardViewPlugin;
@@ -23,7 +23,7 @@ impl Plugin for TierListAppPlugin {
             // .add_plugins(InteractionPlugin)
 
             // === Cards ? ===
-            // .add_plugins(CardPlugin)
+            .add_plugins(CardPlugin)
             // .add_plugins(CardViewPlugin)
 
             // === Auto Save ===
