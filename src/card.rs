@@ -1,3 +1,4 @@
+use bevy::picking::hover::Hovered;
 use bevy::prelude::*;
 use serde::Serialize;
 use serde::Deserialize;
@@ -6,6 +7,7 @@ use std::fs::File;
 use std::io::BufReader;
 
 use crate::tier::Tier;
+use crate::ui::BigCardFullShowArea;
 use crate::ui::UILoadingEnded;
 use crate::ui::UnrankedContainer;
 
@@ -164,6 +166,52 @@ fn spawn_card_view(
             //         break;
             //     }
             // }
+
+        },)
+        .observe(|
+            event: On<Pointer<Over>>,
+            card_query: Query<(Entity, &Card), With<Card>>,
+            mut commands: Commands,
+
+            asset_server: Res<AssetServer>,
+            preview_area_query: Query<Entity, With<BigCardFullShowArea>>,
+            store: Res<CardStore>,
+        | {
+            // info!("Image Hovered");
+            let card_entity = event.entity;
+            let card_id = match card_query.iter().find(|(e, _)| *e == card_entity) {
+                Some((_, card)) => card.id.clone(),
+                None => return,
+            };
+            let Ok(preview_area) = preview_area_query.single() else {return};
+
+            // Clear previous preview
+            commands.entity(preview_area).despawn_children();
+
+
+            let Some(card) = store.cards.iter().find(|c| c.id == card_id) else { return; };
+
+            let image_handle = asset_server.load(format!(
+                "original/{}",
+                card.path
+            ));
+            
+            // Spawn new image
+            commands.entity(preview_area).with_children(|parent| {
+                parent.spawn((
+                    ImageNode {
+                        image: image_handle,
+                        ..default()
+                    },
+                    Node {
+                        max_width: Val::Percent(100.0),
+                        max_height: Val::Percent(100.0),
+                        width: Val::Auto,
+                        height: Val::Auto,
+                        ..default()
+                    },
+                ));
+            });
 
         },)
         .id();

@@ -165,7 +165,7 @@ fn spawn_unranked_container() -> impl Bundle {
 // ⬜✅
 fn spawn_big_card_preview() -> impl Bundle {
     (
-        // BigCardFullShowArea,
+        BigCardFullShowArea,
         Node {
             width: Val::Percent(50.0),
             height: Val::Percent(100.0),
@@ -276,3 +276,6 @@ fn add_ranked_container_bevavior(
 
 #[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
 pub struct UILoadingEnded;
+
+#[derive(Component)]
+pub struct BigCardFullShowArea;
