@@ -1,10 +1,10 @@
 use bevy::prelude::*;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize, de};
 
 
 macro_rules! define_tiers {
     ($($name:ident => $label:expr),+ $(,)?) => {
-        #[derive(Clone, Copy, Serialize, Deserialize, Component)]
+        #[derive(Clone, Copy, Serialize, Deserialize, Component, Debug)]
         #[repr(u8)]
         pub enum Tier {
             $($name),+
@@ -61,3 +61,7 @@ define_tiers! {
     DUPLI   => "DUPLI",
     TRASH   => "TRASH",
 }
+
+// SelectedContainer makes it easy to pick Container user clicked on
+#[derive(Component)]
+pub struct SelectedContainer;

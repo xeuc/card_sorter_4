@@ -5,6 +5,7 @@ mod ui;
 mod tier;
 mod scroll;
 mod card;
+mod mover;
 
 fn main() {
     App::new()

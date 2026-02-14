@@ -2,7 +2,7 @@
 use bevy::prelude::*;
 
 
-use crate::tier::Tier;
+use crate::{card::{Card, CardStore, Dirty, SelectedCardUnused, UserSelection}, tier::{SelectedContainer, Tier}};
 
 pub struct UiPlugin;
 
@@ -10,8 +10,8 @@ impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_systems(Startup, setup.in_set(UILoadingEnded))
-            // .add_systems(Startup, add_card.after(setup))
-            // .add_systems(Startup, add_card2.after(setup))
+            .add_systems(Startup, add_unranked_container_bevavior.after(UILoadingEnded))
+            .add_systems(Startup, add_ranked_container_bevavior.after(UILoadingEnded))
             ;
     }
 }
@@ -67,7 +67,7 @@ fn spawn_ranked_tier_list_table() -> impl Bundle {
     (
         Node {
             width: Val::Percent(100.0),
-            height: Val::Percent(50.0),
+            height: Val::Percent(70.0),
             flex_direction: FlexDirection::Column,
             overflow: Overflow::scroll_y(),
             ..default()
@@ -148,7 +148,7 @@ fn spawn_unranked_container() -> impl Bundle {
         UnrankedContainer,
         Node {
             width: Val::Percent(100.0),
-            height: Val::Percent(50.0),
+            height: Val::Percent(30.0),
             flex_wrap: FlexWrap::Wrap,
             padding: UiRect::all(Val::Px(8.0)),
             align_content: AlignContent::FlexStart,
@@ -183,99 +183,95 @@ fn spawn_big_card_preview() -> impl Bundle {
 pub struct UnrankedContainer;
 
 
-fn add_card(
+fn add_unranked_container_bevavior(
     mut commands: Commands,
-    asset_server: Res<AssetServer>,
-    unranked_container: Query<Entity, With<UnrankedContainer>>,
+    unranked: Query<Entity, With<UnrankedContainer>>,
 ) {
-    let Ok(unranked_container) = unranked_container.single() else {return};
-    let image_handle = asset_server.load("AIDigitalMediaAgency_cosmic_pastels_aurora_borealis_double_ex_e0040751-cd27-4a71-8862-ebda4a1282c8_0.png");
-    
-    // Spawn new image
-    commands.entity(unranked_container)
-    .with_children(|parent| {
-        for _i in 0..100 {
-            parent.spawn((
-                Node {
-                    width: Val::Px(64.0),
-                    height: Val::Px(64.0),
-                    margin: UiRect::all(Val::Px(4.0)),
-                    ..default()
-                },
-                ImageNode {
-                    image: image_handle.clone(),
-                    color: Color::BLACK.into(),
-                    ..default()
-                },
-            ))
-            .observe(|mut event: On<Pointer<Click>>, mut button_color: Query<&mut BackgroundColor>| {
-                info!("Image Clicked");
-                if let Ok(mut background_color) = button_color.get_mut(event.event_target()) {
-                    *background_color = bevy::prelude::BackgroundColor(Color::srgb(1.0, 0.0, 0.0));
-                    event.propagate(false);
-                }
-            },)
-            ;
-        }
-    })
-    .observe(|mut event: On<Pointer<Click>>, mut button_color: Query<&mut BackgroundColor>| { // add selectedCard + replace Query by Single
-        // selectedCard = None => Event click should NOT propagate to container ❌
-        // From card spawn: propagate: false ❌
-        // Because user would like to reach out a card, note a container,
-        // There is no purpose to click a container without having a cart selected
-        // Worst: It will triger the card + the container, so put the card in the
-        // container it is in, then deselect the card... Basically doing nothing
-        
-        // selectedCard = Some => Event click should propagate to container ✅
-        // From card spawn: propagate: true ✅
-        // Because user would like to reach out a container, he already selected a card
-        // If container full of cards, I want the user to easily reach the container anyway
-        // meaning: by clicking on a card
-        // BUT DO NOT RESELECT THE CARD THEN!
-        // Skip the assign card to selectedCard if you click on card while already
-        // having a card selected
+    let unranked_entity = match unranked.single() {
+        Ok(e) => e,
+        Err(_) => return,
+    };
 
-        info!("Container Clicked");
-        if let Ok(mut background_color) = button_color.get_mut(event.event_target()) {
-            *background_color = bevy::prelude::BackgroundColor(Color::srgb(1.0, 0.0, 0.0));
+
+    commands
+        .entity(unranked_entity)
+        .observe(|mut event: On<Pointer<Click>>, mut selected_card: ResMut<SelectedCardUnused>, mut dirty: ResMut<Dirty>, mut commands: Commands, mut user_selection: ResMut<UserSelection>,| {
+            info!("Unranked Container Clicked");
+            let tier_entity = event.entity;
+            // Let the containe know it has been clicked
+            // Making it Querry-able
+            // commands.entity(tier_entity).insert(SelectedContainer);
+
+            if user_selection.card.is_none() {
+                info!("No card selected, click ignored");
+                return;
+            }
+
+            user_selection.container = Some(tier_entity);
             event.propagate(false);
-        }
-    },)
+
+            // info!("Selected card: {:?}", selected_card.0);
+            // let Some(selected_card_entity) = selected_card.0.clone() else { return; };
+            // commands.entity(tier_entity).add_child(selected_card_entity);
+            // event.propagate(false);
+            // dirty.0 = true;
+            // selected_card.0 = None;
+        })
     ;
 }
 
-fn add_card2(
+fn add_ranked_container_bevavior(
     mut commands: Commands,
-    asset_server: Res<AssetServer>,
-    query: Query<(Entity, &Tier)>,
+    mut store: ResMut<CardStore>,
+    tier_query: Query<(Entity, &Tier), With<Tier>>,
+    card_query: Query<(Entity, &Card), With<Card>>,
 ) {
-    let Some((container, _)) = query
-        .iter()
-        .find(|(_, tier)| tier.index() == Tier::RARE.index()) else { return };
+    for (tier_entity, tier) in &tier_query {
 
-    let image_handle = asset_server.load("AIDigitalMediaAgency_cosmic_pastels_aurora_borealis_double_ex_e0040751-cd27-4a71-8862-ebda4a1282c8_0.png");
-    
-    
-    // Spawn new image
-    commands.entity(container)
-    .with_children(|parent| {
-        for _i in 0..100 {
-            parent.spawn((
-                ImageNode {
-                    image: image_handle.clone(),
-                    ..default()
-                },
-                Node {
-                    width: Val::Px(64.0),
-                    height: Val::Px(64.0),
-                    margin: UiRect::all(Val::Px(4.0)),
-                    ..default()
-                },
-            ));
-        }
-    });
+        commands
+            .entity(tier_entity)
+            .observe(|mut event: On<Pointer<Click>>, mut selected_card_res: ResMut<SelectedCardUnused>, mut dirty: ResMut<Dirty>, mut commands: Commands, mut store: ResMut<CardStore>,tier_query: Query<(Entity, &Tier), With<Tier>>, mut user_selection: ResMut<UserSelection>,| {
+                info!("Ranked Container Clicked");
+                let tier_entity = event.entity;
+                // Let the containe know it has been clicked
+                // Making it Querry-able
+                // commands.entity(tier_entity).insert(SelectedContainer);
+
+                if user_selection.card.is_none() {
+                    info!("No card selected, click ignored");
+                    return;
+                }
+
+                user_selection.container = Some(tier_entity);
+                event.propagate(false);
+
+                // info!("Selected card: {:?}", selected_card_res.0);
+                // let Some(selected_card) = selected_card_res.0.clone() else { return; };
+                // let tier_entity = event.entity;
+
+                // let Some((card_entity, _)) = card_query
+                //     .iter()
+                //     .find(|(_, card)| card.id == selected_card.id)
+                // else { return; };
+
+                // commands.entity(tier_entity).add_child(card_entity);
+
+                // event.propagate(false);
+
+                // // I don't have card id I have card entity which doen't help to found the id to fill that tier
+                // // I don't have the tier neither => Acually I manage to have
+                // if let Some(card) = store.cards.iter_mut().find(|c| c.id == selected_card.id) {
+                //     card.tier = Some(tier.clone());
+                // }
+                // dirty.0 = true;
+                // selected_card_res.0 = None;
+            })
+        ;
+
+    }
+
+
 }
-
 
 
 #[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]

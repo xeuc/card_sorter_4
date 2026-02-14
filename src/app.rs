@@ -4,6 +4,7 @@ use crate::card::CardPlugin;
 use crate::ui::UiPlugin;
 use crate::scroll::ScrollPlugin;
 // use crate::ui::card_view::CardViewPlugin;
+use crate::mover::MoverPlugin;
 
 pub struct TierListAppPlugin;
 
@@ -29,6 +30,8 @@ impl Plugin for TierListAppPlugin {
             // === Auto Save ===
             // .add_systems(Update, auto_save_system)
 
+            .add_plugins(MoverPlugin)
+            
             ;
 
     }
