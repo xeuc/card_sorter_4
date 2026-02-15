@@ -55,10 +55,10 @@ define_tiers! {
     ULTRA   => "ULTRA",
     RARE    => "RARE",
     COMMON  => "COMMON",
-    IDK     => "IDK",
+    // IDK     => "IDK",
     VERSO   => "VERSO",
-    CENSOR  => "CENSOR",
-    DUPLI   => "DUPLI",
+    // CENSOR  => "CENSOR",
+    // DUPLI   => "DUPLI",
     TRASH   => "TRASH",
 }
 

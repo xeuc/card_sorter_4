@@ -67,7 +67,7 @@ fn spawn_ranked_tier_list_table() -> impl Bundle {
     (
         Node {
             width: Val::Percent(100.0),
-            height: Val::Percent(70.0),
+            height: Val::Percent(90.0),
             flex_direction: FlexDirection::Column,
             overflow: Overflow::scroll_y(),
             ..default()
@@ -108,7 +108,7 @@ fn spawn_tier_list_line(tier: Tier) -> impl Bundle {
 fn spawn_label_container(tier: Tier) -> impl Bundle {
     (
         Node {
-            width: Val::Percent(15.0),
+            width: Val::Percent(10.0),
             height: Val::Percent(100.0),
             ..default()
         },
@@ -125,7 +125,7 @@ fn spawn_ranked_container(tier: Tier) -> impl Bundle {
     (
         tier,
         Node {
-            width: Val::Percent(85.0),
+            width: Val::Percent(90.0),
             height: Val::Percent(100.0),
             
             flex_wrap: FlexWrap::Wrap,
@@ -148,7 +148,7 @@ fn spawn_unranked_container() -> impl Bundle {
         UnrankedContainer,
         Node {
             width: Val::Percent(100.0),
-            height: Val::Percent(30.0),
+            height: Val::Percent(10.0),
             flex_wrap: FlexWrap::Wrap,
             padding: UiRect::all(Val::Px(8.0)),
             align_content: AlignContent::FlexStart,

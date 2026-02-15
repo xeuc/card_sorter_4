@@ -1,4 +1,3 @@
-use bevy::picking::hover::Hovered;
 use bevy::prelude::*;
 use serde::Serialize;
 use serde::Deserialize;
@@ -49,7 +48,7 @@ fn auto_save_system(
     let path = "assets/cards.json";
     if let Ok(file) = File::create(path) {
         let writer = BufWriter::new(file);
-        info!("store.cards: {:?}", store.cards);
+        // info!("store.cards: {:?}", store.cards);
         if let Err(e) = serde_json::to_writer_pretty(writer, &store.cards) {
             error!("Auto-save failed: {}", e);
         } else {
@@ -192,7 +191,7 @@ fn spawn_card_view(
             let Some(card) = store.cards.iter().find(|c| c.id == card_id) else { return; };
 
             let image_handle = asset_server.load(format!(
-                "original/{}",
+                "thumbs/{}",
                 card.path
             ));
             
@@ -231,8 +230,12 @@ pub struct SelectedCard;
 pub struct Card {
     pub id: String,
     pub file_name: String,
+    pub url: String,
+    pub civitai_url: String,
     pub path: String,
     pub tier: Option<Tier>,
+    pub error: String,
+    pub status: bool,
 }
 
 
